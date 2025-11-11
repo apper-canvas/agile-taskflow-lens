@@ -6,6 +6,7 @@ import { getRouteConfig } from "./route.utils";
 const Root = lazy(() => import("@/layouts/Root"));
 const Layout = lazy(() => import("@/components/organisms/Layout"));
 const TaskManager = lazy(() => import("@/components/pages/TaskManager"));
+const Projects = lazy(() => import("@/components/pages/Projects"));
 const NotFound = lazy(() => import("@/components/pages/NotFound"));
 const Login = lazy(() => import("@/components/pages/Login"));
 const Signup = lazy(() => import("@/components/pages/Signup"));
@@ -56,11 +57,16 @@ const createRoute = ({
 };
 
 // Main application routes
+// Main application routes
 const mainRoutes = [
   createRoute({
     index: true,
     element: <TaskManager />
 }),
+createRoute({
+    path: "projects",
+    element: <Projects />
+  }),
 createRoute({
     path: "*",
     element: <NotFound />

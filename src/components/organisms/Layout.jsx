@@ -15,13 +15,29 @@ function Layout() {
       {isAuthenticated && (
         <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                T
+<div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                  T
+                </div>
+                <span className="text-slate-700 font-medium">TaskFlow</span>
               </div>
-              <span className="text-slate-700 font-medium">TaskFlow</span>
+              
+              <nav className="flex items-center gap-4">
+                <a 
+                  href="/" 
+                  className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                >
+                  Tasks
+                </a>
+                <a 
+                  href="/projects" 
+                  className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                >
+                  Projects
+                </a>
+              </nav>
             </div>
-            
             <div className="flex items-center gap-4">
               <div className="text-sm text-slate-600">
                 Welcome, {user?.firstName || user?.emailAddress || 'User'}
