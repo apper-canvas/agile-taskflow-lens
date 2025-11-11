@@ -13,7 +13,7 @@ const Callback = lazy(() => import("@/components/pages/Callback"));
 const ErrorPage = lazy(() => import("@/components/pages/ErrorPage"));
 const ResetPassword = lazy(() => import("@/components/pages/ResetPassword"));
 const PromptPassword = lazy(() => import("@/components/pages/PromptPassword"));
-
+const ProjectManager = lazy(() => import("@/components/pages/ProjectManager"));
 const createRoute = ({
   path,
   index,
@@ -61,6 +61,10 @@ const mainRoutes = [
   createRoute({
     index: true,
     element: <TaskManager />
+}),
+  createRoute({
+    path: "projects",
+    element: <ProjectManager />
   }),
   createRoute({
     path: "*",

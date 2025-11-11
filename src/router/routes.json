@@ -84,6 +84,20 @@
           }
         ]
       }
+}
+  },
+  "/projects": {
+    "allow": {
+      "when": {
+        "conditions": [
+          {
+            "label": "User must be logged in to view projects",
+            "rule": "authenticated"
+          }
+        ]
+      },
+      "redirectOnDeny": "/login",
+      "excludeRedirectQuery": false
     }
   }
 }
