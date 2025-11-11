@@ -1,102 +1,298 @@
-import taskData from "@/services/mockData/tasks.json";
+import { getApperClient } from "@/services/apperClient";
+import { toast } from "react-toastify";
 
-// Simulate network delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Local storage key
-const STORAGE_KEY = "taskflow_tasks";
-
-// Load tasks from localStorage or use mock data
-const loadTasks = () => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.warn("Failed to parse stored tasks, using mock data");
-    }
-  }
-  return [...taskData];
-};
-
-// Save tasks to localStorage
-const saveTasks = (tasks) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-};
+const TABLE_NAME = "tasks_c";
 
 export const getAll = async () => {
-  await delay(300);
-  return loadTasks();
+  try {
+    const apperClient = getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    const params = {
+      fields: [
+        {"field": {"Name": "Id"}},
+        {"field": {"Name": "Name"}},
+        {"field": {"Name": "title_c"}},
+        {"field": {"Name": "description_c"}},
+        {"field": {"Name": "priority_c"}},
+        {"field": {"Name": "dueDate_c"}},
+        {"field": {"Name": "completed_c"}},
+        {"field": {"Name": "completedAt_c"}},
+        {"field": {"Name": "listId_c"}},
+        {"field": {"Name": "CreatedOn"}}
+      ],
+      orderBy: [{
+        "fieldName": "CreatedOn",
+        "sorttype": "DESC"
+      }]
+    };
+    
+    const response = await apperClient.fetchRecords(TABLE_NAME, params);
+    
+    if (!response.success) {
+      console.error(response.message);
+      toast.error(response.message);
+      return [];
+    }
+
+    if (!response.data || response.data.length === 0) {
+      return [];
+    }
+
+    // Transform data to match component expectations
+    return response.data.map(task => ({
+      Id: task.Id,
+      title: task.title_c || task.Name || "",
+      description: task.description_c || "",
+      priority: task.priority_c || "medium",
+      dueDate: task.dueDate_c,
+      completed: task.completed_c || false,
+      completedAt: task.completedAt_c,
+      listId: task.listId_c,
+      createdAt: task.CreatedOn
+    }));
+  } catch (error) {
+    console.error("Error fetching tasks:", error?.response?.data?.message || error.message);
+    return [];
+  }
 };
 
 export const getById = async (id) => {
-  await delay(200);
-  const tasks = loadTasks();
-  const task = tasks.find(t => t.Id === parseInt(id));
-  if (!task) {
-    throw new Error(`Task with Id ${id} not found`);
+  try {
+    const apperClient = getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    const params = {
+      fields: [
+        {"field": {"Name": "Id"}},
+        {"field": {"Name": "Name"}},
+        {"field": {"Name": "title_c"}},
+        {"field": {"Name": "description_c"}},
+        {"field": {"Name": "priority_c"}},
+        {"field": {"Name": "dueDate_c"}},
+        {"field": {"Name": "completed_c"}},
+        {"field": {"Name": "completedAt_c"}},
+        {"field": {"Name": "listId_c"}},
+        {"field": {"Name": "CreatedOn"}}
+      ]
+    };
+    
+    const response = await apperClient.getRecordById(TABLE_NAME, parseInt(id), params);
+    
+    if (!response.success) {
+      console.error(response.message);
+      toast.error(response.message);
+      throw new Error(`Task with Id ${id} not found`);
+    }
+
+    if (!response.data) {
+      throw new Error(`Task with Id ${id} not found`);
+    }
+
+    // Transform data to match component expectations
+    const task = response.data;
+    return {
+      Id: task.Id,
+      title: task.title_c || task.Name || "",
+      description: task.description_c || "",
+      priority: task.priority_c || "medium",
+      dueDate: task.dueDate_c,
+      completed: task.completed_c || false,
+      completedAt: task.completedAt_c,
+      listId: task.listId_c,
+      createdAt: task.CreatedOn
+    };
+  } catch (error) {
+    console.error(`Error fetching task ${id}:`, error?.response?.data?.message || error.message);
+    throw error;
   }
-  return { ...task };
 };
 
 export const create = async (taskData) => {
-  await delay(400);
-  const tasks = loadTasks();
-  
-  // Find highest existing Id and add 1
-  const maxId = tasks.length > 0 ? Math.max(...tasks.map(t => t.Id)) : 0;
-  
-  const newTask = {
-    Id: maxId + 1,
-    title: taskData.title,
-    description: taskData.description || "",
-    priority: taskData.priority || "medium",
-    dueDate: taskData.dueDate,
-    completed: false,
-    listId: taskData.listId || "default",
-    createdAt: new Date().toISOString(),
-    completedAt: null
-  };
-  
-  const updatedTasks = [newTask, ...tasks];
-  saveTasks(updatedTasks);
-  
-  return { ...newTask };
+  try {
+    const apperClient = getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    const params = {
+      records: [{
+        Name: taskData.title,
+        title_c: taskData.title,
+        description_c: taskData.description || "",
+        priority_c: taskData.priority || "medium",
+        dueDate_c: taskData.dueDate,
+        completed_c: false,
+        completedAt_c: null
+      }]
+    };
+    
+    const response = await apperClient.createRecord(TABLE_NAME, params);
+    
+    if (!response.success) {
+      console.error(response.message);
+      toast.error(response.message);
+      throw new Error("Failed to create task");
+    }
+
+    if (response.results) {
+      const successful = response.results.filter(r => r.success);
+      const failed = response.results.filter(r => !r.success);
+      
+      if (failed.length > 0) {
+        console.error(`Failed to create ${failed.length} tasks:`, failed);
+        failed.forEach(record => {
+          record.errors?.forEach(error => toast.error(`${error.fieldLabel}: ${error}`));
+          if (record.message) toast.error(record.message);
+        });
+      }
+
+      if (successful.length > 0) {
+        const task = successful[0].data;
+        return {
+          Id: task.Id,
+          title: task.title_c || task.Name || "",
+          description: task.description_c || "",
+          priority: task.priority_c || "medium",
+          dueDate: task.dueDate_c,
+          completed: task.completed_c || false,
+          completedAt: task.completedAt_c,
+          listId: task.listId_c,
+          createdAt: task.CreatedOn
+        };
+      }
+    }
+
+    throw new Error("Failed to create task");
+  } catch (error) {
+    console.error("Error creating task:", error?.response?.data?.message || error.message);
+    throw error;
+  }
 };
 
 export const update = async (id, updateData) => {
-  await delay(300);
-  const tasks = loadTasks();
-  const taskIndex = tasks.findIndex(t => t.Id === parseInt(id));
-  
-  if (taskIndex === -1) {
-    throw new Error(`Task with Id ${id} not found`);
+  try {
+    const apperClient = getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    // Prepare update payload with only updateable fields
+    const updatePayload = {
+      Id: parseInt(id)
+    };
+
+    if (updateData.title !== undefined) {
+      updatePayload.Name = updateData.title;
+      updatePayload.title_c = updateData.title;
+    }
+    if (updateData.description !== undefined) {
+      updatePayload.description_c = updateData.description;
+    }
+    if (updateData.priority !== undefined) {
+      updatePayload.priority_c = updateData.priority;
+    }
+    if (updateData.dueDate !== undefined) {
+      updatePayload.dueDate_c = updateData.dueDate;
+    }
+    if (updateData.completed !== undefined) {
+      updatePayload.completed_c = updateData.completed;
+    }
+    if (updateData.completedAt !== undefined) {
+      updatePayload.completedAt_c = updateData.completedAt;
+    }
+    if (updateData.listId !== undefined) {
+      updatePayload.listId_c = updateData.listId;
+    }
+
+    const params = {
+      records: [updatePayload]
+    };
+    
+    const response = await apperClient.updateRecord(TABLE_NAME, params);
+    
+    if (!response.success) {
+      console.error(response.message);
+      toast.error(response.message);
+      throw new Error(`Failed to update task ${id}`);
+    }
+
+    if (response.results) {
+      const successful = response.results.filter(r => r.success);
+      const failed = response.results.filter(r => !r.success);
+      
+      if (failed.length > 0) {
+        console.error(`Failed to update ${failed.length} tasks:`, failed);
+        failed.forEach(record => {
+          record.errors?.forEach(error => toast.error(`${error.fieldLabel}: ${error}`));
+          if (record.message) toast.error(record.message);
+        });
+      }
+
+      if (successful.length > 0) {
+        const task = successful[0].data;
+        return {
+          Id: task.Id,
+          title: task.title_c || task.Name || "",
+          description: task.description_c || "",
+          priority: task.priority_c || "medium",
+          dueDate: task.dueDate_c,
+          completed: task.completed_c || false,
+          completedAt: task.completedAt_c,
+          listId: task.listId_c,
+          createdAt: task.CreatedOn
+        };
+      }
+    }
+
+    throw new Error(`Failed to update task ${id}`);
+  } catch (error) {
+    console.error("Error updating task:", error?.response?.data?.message || error.message);
+    throw error;
   }
-  
-  const existingTask = tasks[taskIndex];
-  const updatedTask = {
-    ...existingTask,
-    ...updateData,
-    Id: existingTask.Id // Ensure Id doesn't change
-  };
-  
-  tasks[taskIndex] = updatedTask;
-  saveTasks(tasks);
-  
-  return { ...updatedTask };
 };
 
 export const delete_ = async (id) => {
-  await delay(250);
-  const tasks = loadTasks();
-  const filteredTasks = tasks.filter(t => t.Id !== parseInt(id));
-  
-  if (filteredTasks.length === tasks.length) {
-    throw new Error(`Task with Id ${id} not found`);
+  try {
+    const apperClient = getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    const params = { 
+      RecordIds: [parseInt(id)]
+    };
+    
+    const response = await apperClient.deleteRecord(TABLE_NAME, params);
+    
+    if (!response.success) {
+      console.error(response.message);
+      toast.error(response.message);
+      return false;
+    }
+
+    if (response.results) {
+      const successful = response.results.filter(r => r.success);
+      const failed = response.results.filter(r => !r.success);
+      
+      if (failed.length > 0) {
+        console.error(`Failed to delete ${failed.length} tasks:`, failed);
+        failed.forEach(record => {
+          if (record.message) toast.error(record.message);
+        });
+      }
+      return successful.length > 0;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting task:", error?.response?.data?.message || error.message);
+    return false;
   }
-  
-saveTasks(filteredTasks);
-  return true;
 };
 
 // Export delete_ as the main delete function (delete is a reserved keyword)
