@@ -95,9 +95,8 @@ export const delete_ = async (id) => {
     throw new Error(`Task with Id ${id} not found`);
   }
   
-  saveTasks(filteredTasks);
+saveTasks(filteredTasks);
   return true;
-};
 };
 
 // Export delete_ as the main delete function (delete is a reserved keyword)
